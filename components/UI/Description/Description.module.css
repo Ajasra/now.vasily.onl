@@ -1,0 +1,54 @@
+
+.paper {
+    background-color: #ffffff;
+    /* border: 1px solid #e0e0e0; */
+    /* border-radius: 8px; */
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 300px;
+    margin: 0 auto;
+    color: black;
+    transition: background-color 0.3s ease;
+    font-size: .75rem;
+    z-index: 999999999;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    overflow-y: auto;
+    max-height: 90vh;
+}
+
+/* Custom scrollbar for WebKit browsers */
+.paper::-webkit-scrollbar {
+    width: 16px;
+}
+
+.paper::-webkit-scrollbar-track {
+    background: #f1f1f10f;
+    border-radius: 10px;
+}
+
+.paper::-webkit-scrollbar-thumb {
+    background: #f2f2f2;
+    border-radius: 10px;
+}
+
+.paper::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Custom scrollbar for Firefox */
+.paper {
+    /* scrollbar-width: thin; */
+    /* scrollbar-color: #888 #f1f1f1; */
+}
+.close{
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    padding: 8px;
+    cursor: pointer;
+    color: #000;
+    transition: color 0.3s ease;
+}

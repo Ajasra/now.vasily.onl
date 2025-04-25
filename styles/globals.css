@@ -1,0 +1,49 @@
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #101010;
+  color: #f3f3f3;
+}
+
+.mantine-Timeline-itemBullet {
+  background-color: #101010;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.mantine-Timeline-item.active .mantine-Timeline-itemBullet {
+  background-color: #101010;
+  border-color: rgba(255, 172, 39, 0.4);
+}
+
+.mantine-Timeline-item {
+    cursor: pointer;
+    margin-top: 8px;
+    
+}
+
+.mantine-Timeline-item::before {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mantine-Timeline-item:hover .mantine-Timeline-itemBody,
+.mantine-Timeline-item.active .mantine-Timeline-itemBody {
+  opacity: 1;
+}
+
+.mantine-Timeline-itemBody {
+  opacity: 0;
+}
+
+.mantine-Timeline-itemBody .mantine-Timeline-itemTitle {
+  color: #f3f3f34f;
+  font-weight: 100;
+  font-size: small;
+  line-height: 1;
+  padding: 0px;
+  margin: 0px;
+}
+
+.mantine-Paper-root img {
+  max-width: 100%;
+  height: auto;
+}
