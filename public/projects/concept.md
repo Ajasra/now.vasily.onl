@@ -34,4 +34,6 @@ The "NOW" series consists of 17 watches, each representing a unique facet of tim
 
 ---
 
+![icon](projects/icon.png)
+
 _NOW Project - Exploring the dimensions of time through digital art and wearable technology_

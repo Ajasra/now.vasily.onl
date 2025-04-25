@@ -207,7 +207,7 @@ const Watchy = forwardRef<Group, WatchyProps>((props, ref) => { // Use forwardRe
         screenTexture.dispose();
       }
     };
-  }, [scene, active, showTime, fontLoaded, now]);
+  }, [scene, active, showTime, fontLoaded, now, createDateTimeTexture, screenTexture]);
   
   useFrame((state, delta) => {
     // Use internalRef here as it's guaranteed to be a RefObject

@@ -1,4 +1,3 @@
-
 import { Timeline } from '@mantine/core';
 import { Text } from '@mantine/core';
 import { title } from 'process';
@@ -36,7 +35,7 @@ interface ModelsTimelineProps {
 
 export default function ModelsTimeline({ active, setActive }: ModelsTimelineProps) {
 
-  function handleClick(id){
+  function handleClick(id: number) {
     if (id === active) return;
     if (items[id].active) setActive(id);
   }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { NextPage } from 'next';
-import { useSpring, animated } from '@react-spring/three'; 
+import { useSpring, a } from '@react-spring/three';
 import Watchy from '../components/Scene/Watchy';
 import SpinningLight from '../components/Scene/SpinningLight';
 import ModelsTimeline from '../components/UI/Timeline';
@@ -31,12 +31,6 @@ const useMediaQuery = (query: string) => {
   return matches;
 };
 
-// Wrap Watchy for animation
-const AnimatedWatchyComponent = animated(Watchy);
-
-// Define a type that matches the expected props, including potential animated props
-type AnimatedWatchyProps = React.ComponentProps<typeof AnimatedWatchyComponent>; 
-
 const IndexPage: NextPage = () => {
   const [active, setActive] = useState(0); 
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(false); 
@@ -49,7 +43,7 @@ const IndexPage: NextPage = () => {
   const watchDefaultPosition: [number, number, number] = [1.2, -1.2, 0];
   const watchShiftedLeftPosition: [number, number, number] = [-0.5, -1.2, 0];
 
-  const { position } = useSpring({
+  const springProps = useSpring({
     position: isWideScreen && isDescriptionVisible 
       ? watchShiftedLeftPosition
       : watchDefaultPosition,
@@ -57,9 +51,6 @@ const IndexPage: NextPage = () => {
     onStart: () => setIsAnimating(true),
     onRest: () => setIsAnimating(false),
   });
-
-  // Cast the component during usage if needed, or ensure props match AnimatedWatchyProps
-  const AnimatedWatchy = AnimatedWatchyComponent as React.FC<AnimatedWatchyProps>;
 
   // Update button disabled logic: Only disabled while animating
   const isButtonDisabled = isAnimating;
@@ -113,12 +104,13 @@ const IndexPage: NextPage = () => {
       >
         <ambientLight intensity={0.2} />
         <SpinningLight />
-        <AnimatedWatchy 
-          position={position as any} 
-          scale={0.07} 
-          rotation={[Math.PI / 2, 0, Math.PI]} // Use Math.PI directly
-          active={active}
-        />
+        <a.group position={springProps.position}>
+          <Watchy 
+            scale={0.07} 
+            rotation={[Math.PI / 2, 0, Math.PI]}
+            active={active}
+          />
+        </a.group>
         <OrbitControls 
         enablePan={false}
         enableZoom={false}
