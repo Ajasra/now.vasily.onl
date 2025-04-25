@@ -1,6 +1,11 @@
-
 .paper {
-    background-color: #ffffff;
+    position: fixed;
+    z-index: 20; /* Ensure it's above button and potentially canvas controls */
+    overflow-y: auto; /* Allow scrolling if content overflows */
+    transition: opacity 0.5s ease-in-out; /* Optional: fade in/out */
+    background-color: rgba(255, 255, 255, 0.644); /* Slightly transparent white background */
+    backdrop-filter: blur(5px); /* Optional: blur background */
+    max-height: 80vh; /* Limit height */
     /* border: 1px solid #e0e0e0; */
     /* border-radius: 8px; */
     padding: 16px;
@@ -8,15 +13,10 @@
     max-width: 300px;
     margin: 0 auto;
     color: black;
-    transition: background-color 0.3s ease;
     font-size: .75rem;
-    z-index: 999999999;
-    position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    overflow-y: auto;
-    max-height: 90vh;
 }
 
 /* Custom scrollbar for WebKit browsers */
@@ -30,7 +30,7 @@
 }
 
 .paper::-webkit-scrollbar-thumb {
-    background: #f2f2f2;
+    background: #f2f2f291;
     border-radius: 10px;
 }
 
@@ -43,10 +43,33 @@
     /* scrollbar-width: thin; */
     /* scrollbar-color: #888 #f1f1f1; */
 }
-.close{
-    position: fixed;
-    top: 16px;
-    right: 16px;
+
+/* Styles for Wide Screens */
+.wide {
+    top: 50%;
+    right: 30px; /* Positioned from the right */
+    transform: translateY(-50%);
+    width: 350px; /* Fixed width */
+    max-width: 40%; /* Max width relative to viewport */
+    border-radius: 8px;
+}
+
+/* Styles for Narrow Screens (Phones) */
+.narrow {
+    top: 20px;
+    left: 0;
+    width: 100vw;
+    height:90vh; /* Full screen */
+    max-height: 100vh; /* Override max-height */
+    background-color: rgba(255, 255, 255, 0.95); /* More opaque background */
+    transform: translateX(5%);
+}
+
+.close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 21; /* Above content */
     padding: 8px;
     cursor: pointer;
     color: #000;

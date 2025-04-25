@@ -1,15 +1,33 @@
-import React, { useRef, useEffect, useState, use } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Texture, useGLTF } from '@react-three/drei';
-import { Group, RepeatWrapping, Vector2, CanvasTexture, TextureLoader, Color, Object3D } from 'three';
+import React, { useRef, useEffect, useState, use, forwardRef, MutableRefObject } from 'react';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
+import { Group, RepeatWrapping, Vector2, CanvasTexture, TextureLoader, Color, Object3D, Vector3, Layers, Euler, Matrix4, Quaternion, Material, MeshStandardMaterial } from 'three';
+import type { Texture } from 'three';
+import { SpringValue, animated } from '@react-spring/three';
+
+// Define props interface
+interface WatchyProps {
+  position?: SpringValue<[number, number, number]> | [number, number, number];
+  scale?: number | Vector3;
+  rotation?: Vector3 | Euler;
+  active: number;
+  // Allow any other props passed down
+  [key: string]: any;
+}
 
 const lightColor = new Color('#FFCA88'); // Brighter color
 
-// Watchy model component
-const Watchy = (props: any) => {
-  const groupRef = useRef<Group>(null!);
+// Wrap component with forwardRef
+const Watchy = forwardRef<Group, WatchyProps>((props, ref) => { // Use forwardRef and typed props
+  // Use the forwarded ref or create a local one if none is passed
+  const internalRef = useRef<Group>(null!); 
+  // Assign the forwarded ref OR the internal ref to groupRef.
+  // This handles cases where the parent component might not pass a ref.
+  const groupRef = (ref as MutableRefObject<Group>) || internalRef;
+
   const { scene } = useGLTF('/models/watchy.glb');
-  const [screenTexture, setScreenTexture] = useState<CanvasTexture | null>(null);
+  // Update state type to allow Texture or CanvasTexture
+  const [screenTexture, setScreenTexture] = useState<CanvasTexture | Texture | null>(null);
   const [watchyObj, setWatchyObj] = useState<Object3D | null>(null);
   const [showTime, setShowTime] = useState(false);
   const [fontLoaded, setFontLoaded] = useState(false);
@@ -18,7 +36,7 @@ const Watchy = (props: any) => {
   const [project, setProject] = useState(null);
   const [description, setDescription] = useState("");
 
-  const { active } = props;
+  const { active } = props; // Props are now typed
   
   // Load custom font
   useEffect(() => {
@@ -104,7 +122,6 @@ const Watchy = (props: any) => {
       }else{
         context.font = '140px MonoFonto';
         context.textAlign = 'center';
-        context.textBaseline = 'center';
         context.fillText("NOW", width / 2, height / 2 + 20);
       }
     };
@@ -166,13 +183,14 @@ const Watchy = (props: any) => {
             // Check if it's a single material or an array
             const materials = Array.isArray(node.material) ? node.material : [node.material];
             
-            materials.forEach(material => {
-              if (material.name === 'screen.001') {
+            materials.forEach((material: Material) => {
+              // Type guard to ensure it's the correct material type before accessing specific props
+              if (material instanceof MeshStandardMaterial && material.name === 'screen.001') {
                 material.map = texture;
                 material.color = new Color(lightColor);
                 material.emissiveMap = texture;
                 material.emissive = new Color(lightColor);
-                material.emissiveIntensity = 1.0; // Full emission strength
+                material.emissiveIntensity = 1.0;
                 material.needsUpdate = true;
               }
             });
@@ -192,13 +210,14 @@ const Watchy = (props: any) => {
   }, [scene, active, showTime, fontLoaded, now]);
   
   useFrame((state, delta) => {
-    if (groupRef.current) {
+    // Use internalRef here as it's guaranteed to be a RefObject
+    if (internalRef.current) {
       // Optional: Add some gentle rotation animation
-      // groupRef.current.rotation.y += delta * 0.2;
+      // internalRef.current.rotation.y += delta * 0.2;
     }
   });
 
-  const handleWatchyClick = (event: any) => {
+  const handleWatchyClick = (event: ThreeEvent<MouseEvent>) => {
 
     if (event.object.name === 'Watchy_2'){
       event.stopPropagation(); 
@@ -214,16 +233,23 @@ const Watchy = (props: any) => {
   };
 
   return (
-    <group ref={groupRef} {...props}>
+    // Pass the correct ref type and cast props to AnimatedGroupProps to resolve complex type conflicts
+    <animated.group 
+      ref={groupRef} 
+      // Use 'as any' to bypass complex type checking for spread props from react-spring/fiber
+      {...props as any} 
+    >
       <primitive 
         object={scene} 
-        scale={1.0} 
+        scale={1.0} // Internal scale, the group controls the overall scale via props
         onClick={handleWatchyClick}
-        onPointerMissed={(e) => e.stopPropagation()}
+        onPointerMissed={(e: ThreeEvent<PointerEvent>) => e.stopPropagation()}
       />
-    </group>
+    </animated.group>
   );
-};
+});
+
+Watchy.displayName = 'Watchy'; // Add display name for DevTools
 
 // Preload the model
 useGLTF.preload('/models/watchy.glb');
