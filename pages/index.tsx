@@ -237,6 +237,21 @@ const IndexPage: NextPage = () => {
       >
         <IconFileDescription size={32} />
       </ActionIcon>
+
+      {/* Copyright */}
+      <Text
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '20px',
+          zIndex: 500,
+          color: '#555555',
+          opacity: 0.7,
+          fontSize: '14px'
+        }}
+      >
+        © vasily.onl
+      </Text>
     </>
   );
 };
