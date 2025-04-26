@@ -1,18 +1,27 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { NextPage } from 'next';
 import { useSpring, a } from '@react-spring/three';
-import Watchy from '../components/Scene/Watchy';
-import SpinningLight from '../components/Scene/SpinningLight';
-import ModelsTimeline from '../components/UI/Timeline';
-import ProjectDescription from '../components/UI/Description';
-import { Group } from 'three';
-import { IconBrandGithub, IconInfoCircle, IconFileDescription } from '@tabler/icons-react';
-import { ActionIcon, Text, Paper } from '@mantine/core';
-import ReactMarkdown from 'react-markdown';
-import styles from '../components/UI/Description/Description.module.css';
+import WatchyComponent from '../components/Scene/Watchy';
+import SpinningLightComponent from '../components/Scene/SpinningLight';
+import ModelsTimelineComponent from '../components/UI/Timeline';
+import ProjectDescriptionComponent from '../components/UI/Description';
+import ConceptDescriptionComponent from '../components/UI/ConceptDescription';
+import ToolbarComponent from '../components/UI/Toolbar';
+import ShowDetailsButtonComponent from '../components/UI/ShowDetailsButton';
+import CopyrightTextComponent from '../components/UI/CopyrightText';
 import { ProjectDetails } from '../types/project';
+
+// Memoized child components
+const Watchy = memo(WatchyComponent);
+const SpinningLight = memo(SpinningLightComponent);
+const ModelsTimeline = memo(ModelsTimelineComponent);
+const ProjectDescription = memo(ProjectDescriptionComponent);
+const ConceptDescription = memo(ConceptDescriptionComponent);
+const Toolbar = memo(ToolbarComponent);
+const ShowDetailsButton = memo(ShowDetailsButtonComponent);
+const CopyrightText = memo(CopyrightTextComponent);
 
 // Simple hook to check media query
 const useMediaQuery = (query: string) => {
@@ -118,26 +127,9 @@ const IndexPage: NextPage = () => {
     fetchProjectData();
   }, [active]); // Dependency array includes only 'active'
 
-  // Update button disabled logic: Only disabled while animating
-  const isButtonDisabled = isAnimating;
-
-  const handleButtonClick = () => {
-    if (!isButtonDisabled) {
-      setDescriptionRequested(true);
-    }
-  };
-
-  const handleSetDescriptionVisible = useCallback((visible: boolean) => {
-    setIsDescriptionVisible(visible);
-    if (!visible) {
-      setDescriptionRequested(false);
-    }
-  }, []);
-
-  // Handler for toggling concept visibility and fetching content
-  const handleConceptToggle = async () => {
-    if (!isConceptVisible) {
-      // If not visible, we're about to show it, so fetch content
+  // Effect to fetch concept markdown on mount
+  useEffect(() => {
+    const fetchConceptContent = async () => {
       try {
         const response = await fetch('/projects/concept.md');
         if (!response.ok) {
@@ -145,16 +137,35 @@ const IndexPage: NextPage = () => {
         }
         const markdown = await response.text();
         setConceptContent(markdown);
-        setIsConceptVisible(true);
       } catch (error) {
         console.error('Error fetching concept markdown:', error);
-        // You could add error state and show a message if needed
+        setConceptContent('Failed to load concept description.'); // Provide fallback content
       }
-    } else {
-      // Just hide it if it's already visible
-      setIsConceptVisible(false);
+    };
+
+    fetchConceptContent();
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Update button disabled logic: Only disabled while animating
+  const isButtonDisabled = isAnimating;
+
+  const handleButtonClick = useCallback(() => {
+    if (!isButtonDisabled) {
+      setDescriptionRequested(true);
     }
-  };
+  }, [isButtonDisabled]); // Dependency: isButtonDisabled
+
+  const handleSetDescriptionVisible = useCallback((visible: boolean) => {
+    setIsDescriptionVisible(visible);
+    if (!visible) {
+      setDescriptionRequested(false);
+    }
+  }, []); // Dependency: isConceptVisible (and setIsConceptVisible which is stable)
+
+  // Simplified handler for toggling concept visibility
+  const handleConceptToggle = useCallback(() => {
+    setIsConceptVisible(isVis => !isVis);
+  }, []); // No dependencies needed as it uses the functional update form
 
   return (
     <>
@@ -189,7 +200,6 @@ const IndexPage: NextPage = () => {
         />
       </Canvas>
       <ProjectDescription 
-        active={active} 
         show={isDescriptionVisible} 
         setShow={handleSetDescriptionVisible}
         isWideScreen={isWideScreen}
@@ -198,121 +208,21 @@ const IndexPage: NextPage = () => {
         isLoading={isFetchingDescription}
         error={fetchError}
       />
+      <ConceptDescription
+        show={isConceptVisible}
+        setShow={setIsConceptVisible}
+        content={conceptContent}
+        isWideScreen={isWideScreen}
+      />
       <ModelsTimeline active={active} setActive={setActive} />
 
-      <button
+      <ShowDetailsButton
         onClick={handleButtonClick}
         disabled={isButtonDisabled}
-        style={{
-          position: 'fixed',
-          bottom: '30px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 10, 
-          padding: '10px 20px',
-          fontSize: '16px',
-          cursor: isButtonDisabled ? 'not-allowed' : 'pointer',
-          backgroundColor: '#181818',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          opacity: isButtonDisabled ? 0.6 : 1,
-          transition: 'opacity 0.3s ease, background-color 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px', // Space between icon and text
-        }}
-      >
-        <IconInfoCircle size={24} />
-        {projectTitle ? projectTitle : 'Show Details'}
-      </button>
-
-
-      {/* {isConceptVisible && (
-        <Paper 
-          p="xl" 
-          shadow="xs" 
-          className={`${styles.paper} ${isWideScreen ? styles.wide : styles.narrow}`}
-        >
-          <ActionIcon 
-            radius="xl" 
-            size="sm" 
-            color="blue" 
-            variant="subtle" 
-            className={styles.close} 
-            onClick={() => setIsConceptVisible(false)}
-          >
-            X
-          </ActionIcon>
-          
-          <div>
-            <ReactMarkdown>{conceptContent}</ReactMarkdown>
-            <Text size="sm" ta="right">
-              <br />
-              <a href="#" onClick={() => setIsConceptVisible(false)}>Close</a>
-            </Text>
-          </div>
-        </Paper>
-      )} */}
-
-
-      {/* <ActionIcon
-        component="a"
-        href="https://github.com/Ajasra/NOW"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="View project on GitHub"
-        variant="transparent"
-        size="xl"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 500,
-          color: '#555555',
-          opacity: 0.7,
-          transition: 'opacity 0.3s ease',
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-      >
-        <IconBrandGithub size={32} />
-      </ActionIcon>
-
-
-      <ActionIcon
-        onClick={handleConceptToggle}
-        title="View project concept"
-        variant="transparent"
-        size="xl"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '70px', // Position to the left of GitHub icon
-          zIndex: 500,
-          color: '#555555',
-          opacity: 0.7,
-          transition: 'opacity 0.3s ease',
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-      >
-        <IconFileDescription size={32} />
-      </ActionIcon> */}
-
-      <Text
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '20px',
-          zIndex: 500,
-          color: '#555555',
-          opacity: 0.7,
-          fontSize: '14px'
-        }}
-      >
-        © vasily.onl
-      </Text>
+        buttonText={projectTitle ? projectTitle : 'Show Details'}
+      />
+      <Toolbar handleConceptToggle={handleConceptToggle} />
+      <CopyrightText />
     </>
   );
 };

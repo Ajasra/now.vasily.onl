@@ -7,16 +7,15 @@ import styles from './Description.module.css';
 
 // Define props including the fetched data
 interface ProjectDescriptionProps {
-  // active: number; // No longer needed directly for fetching
   show: boolean;
   setShow: (show: boolean) => void;
   isWideScreen: boolean;
-  projectDetails: ProjectDetails | null; // Receive project details
-  projectDescription: string;          // Receive description markdown
-  isLoading: boolean;                  // Receive loading state
-  error: string;                       // Receive error state
-  // onTitleUpdate?: (title: string) => void; // No longer needed
+  projectDetails: ProjectDetails | null; 
+  projectDescription: string;
+  isLoading: boolean; 
+  error: string;                      
 }
+  
 
 // Use props directly, remove internal state and fetching logic
 export default memo(function ProjectDescription({
@@ -28,16 +27,9 @@ export default memo(function ProjectDescription({
   isLoading, 
   error
 }: ProjectDescriptionProps) {
-  // Remove internal state
-  // const [project, setProject] = useState<ProjectDetails | null>(null);
-  // const [description, setDescription] = useState("");
-  // const [isLoading, setIsLoading] = useState(false);
-  // const [error, setError] = useState("");
 
   console.log('Description rerender')
 
-  // Remove fetching useEffect
-  // useEffect(() => { ... }, [active, setShow, onTitleUpdate]);
 
   if (!show) {
     return null;
@@ -66,7 +58,6 @@ export default memo(function ProjectDescription({
         <ActionIcon radius="xl" size="sm" color="blue" variant="subtle" className={styles.close} onClick={handleClose}>
           X
         </ActionIcon>
-        {/* Use projectDetails and projectDescription props */} 
         {projectDetails ? (
           <>
             <ReactMarkdown>{projectDescription}</ReactMarkdown>
@@ -79,7 +70,6 @@ export default memo(function ProjectDescription({
             </Text>
           </>
         ) : (
-          // Display a message if details are null but no error/loading
           <Text>Project details not available.</Text>
         )}
       </Paper>
