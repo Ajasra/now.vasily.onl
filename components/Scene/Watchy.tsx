@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState, use, forwardRef, MutableRefObject } from 'react';
+import React, { useRef, useEffect, useState, use, forwardRef, MutableRefObject, useMemo, useCallback, memo } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import { Group, RepeatWrapping, Vector2, CanvasTexture, TextureLoader, Color, Object3D, Vector3, Layers, Euler, Matrix4, Quaternion, Material, MeshStandardMaterial } from 'three';
-import type { Texture } from 'three';
+import { Group, RepeatWrapping, Vector2, TextureLoader, Color, Object3D, Vector3, Layers, Euler, Matrix4, Quaternion, Material, MeshStandardMaterial, Mesh } from 'three';
+import type { Texture, CanvasTexture } from 'three'; // Explicitly import CanvasTexture
 import { SpringValue, animated } from '@react-spring/three';
+import { useWatchScreenTexture } from '../../hooks/useWatchScreenTexture'; // Adjust path as needed
 
 // Define props interface
 interface WatchyProps {
@@ -18,37 +19,25 @@ interface WatchyProps {
 const lightColor = new Color('#FFCA88'); // Brighter color
 
 // Wrap component with forwardRef
-const Watchy = forwardRef<Group, WatchyProps>((props, ref) => { // Use forwardRef and typed props
-  // Use the forwarded ref or create a local one if none is passed
-  const internalRef = useRef<Group>(null!); 
-  // Assign the forwarded ref OR the internal ref to groupRef.
-  // This handles cases where the parent component might not pass a ref.
+const WatchyComponent = forwardRef<Group, WatchyProps>((props, ref) => {
+  const internalRef = useRef<Group>(null!);
   const groupRef = (ref as MutableRefObject<Group>) || internalRef;
 
-  const { scene } = useGLTF('/models/watchy.glb');
-  // Update state type to allow Texture or CanvasTexture
-  const [screenTexture, setScreenTexture] = useState<CanvasTexture | Texture | null>(null);
-  const [watchyObj, setWatchyObj] = useState<Object3D | null>(null);
+  const { nodes, materials: gltfMaterials, scene } = useGLTF('/models/watchy.glb'); // Destructure nodes/materials if needed
   const [showTime, setShowTime] = useState(false);
   const [fontLoaded, setFontLoaded] = useState(false);
-  const [now, setNow] = useState(false);
+  const screenMaterialRef = useRef<MeshStandardMaterial | null>(null); // Ref to store the screen material
 
-  const [project, setProject] = useState(null);
-  const [description, setDescription] = useState("");
+  const { active } = props;
 
-  const { active } = props; // Props are now typed
-
-  console.log(active);
-  
   // Load custom font
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    
+
     const fontFace = new FontFace('MonoFonto', `url(/font/monofonto.otf)`);
-    
+
     fontFace.load()
       .then(font => {
-        // Add font to document fonts
         document.fonts.add(font);
         setFontLoaded(true);
         console.log('MonoFonto font loaded successfully');
@@ -56,204 +45,109 @@ const Watchy = forwardRef<Group, WatchyProps>((props, ref) => { // Use forwardRe
       .catch(err => {
         console.error('Failed to load MonoFonto font:', err);
       });
-  }, []);
-  
-  // Create texture function directly in component
-  const createDateTimeTexture = (
-    width: number = 400,
-    height: number = 400,
-    options = {
-      padding: 20,
-      edition: 1,
-      sid: "12345678"
-    }
-  ): CanvasTexture | null => {
-    // Check if we're in a browser environment
-    if (typeof document === 'undefined') {
-      console.warn('createDateTimeTexture called in a non-browser environment');
-      return null;
-    }
+  }, []); // Runs once on mount
 
-    // Create canvas element
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    
-    if (!context) {
-      console.error('Could not get canvas context');
-      return null;
-    }
-    
-    // Create update function to refresh time
-    const updateCanvas = () => {
-      // Clear canvas
-      context.fillStyle = 'black';
-      context.fillRect(0, 0, width, height);
-      
-      // Get current date and time
-      const currentTime = new Date();
-      const timeString = currentTime.toLocaleTimeString();
-      const dateString = `${currentTime.getDate()}.${currentTime.getMonth() + 1}.${currentTime.getFullYear()}`;
-      
-      // Draw time
-      context.fillStyle = 'white';
-
-      if (!now) {
-        context.font = '110px MonoFonto';
-        context.textAlign = 'left';
-        context.textBaseline = 'top';
-        const [hour, minute, period] = timeString.split(/[: ]/);
-        const Hour = parseInt(hour) < 10 ? `0${hour}` : hour;
-        context.fillText(Hour, 135, 90);
-        context.fillText(minute, 135, 185);
-        const pm = parseInt(hour) < 12 ? 'PM' : 'AM';
-        context.font = '32px MonoFonto';
-        context.fillText(pm, 170, 300);
-
-        // Draw date
-        context.font = '28px MonoFonto';
-        context.fillText(dateString, 20, 400 - 40);
-
-        // Draw edition
-        const edition = options.edition < 10 ? `0${options.edition}` : options.edition;
-        context.fillText(`${edition}/17`, 310, 400 - 40);
-
-        // Draw sid
-        context.fillText(`S#ID: ${options.sid}`, 20, 20);
-      }else{
-        context.font = '140px MonoFonto';
-        context.textAlign = 'center';
-        context.fillText("NOW", width / 2, height / 2 + 20);
-      }
-    };
-    
-    // Initial draw
-    updateCanvas();
-    
-    // Create texture from canvas
-    const texture = new CanvasTexture(canvas);
-    
-    // Set up animation loop to update texture
-    const animate = () => {
-      updateCanvas();
-      texture.needsUpdate = true;
-      requestAnimationFrame(animate);
-    };
-    
-    // Start animation loop
-    animate();
-    
-    return texture;
-  };
-  
+  // Find the screen material once on mount
   useEffect(() => {
-    // Only run in browser environment
-    if (typeof window === 'undefined') return;
-    
-    try {
-      // Create our dynamic texture with date and time
-      let texture: Texture | null = null;
-
-      if(showTime){
-        texture = createDateTimeTexture(400, 400, {
-          edition: active + 1,
-          sid: "12345678",
-          padding: 20
-        });
-      }
-      else{
-        texture = new TextureLoader().load(`/projects/${active+1}/sc_1.png`);
-      }
-
-      if (texture) {
-        // Configure texture properties
-        texture.center = new Vector2(0.5, 0.5);
-        texture.repeat.set(-1, 1);
-        texture.wrapS = texture.wrapT = RepeatWrapping;
-        
-        setScreenTexture(texture);
-        
-        // Find the screen material and the Watchy object
-        scene.traverse((node: any) => {
-          // Find the Watchy object
-          if (node.name === 'Watchy') {
-            setWatchyObj(node);
+      scene.traverse((node) => {
+          // Check if it's the screen mesh
+          if (node instanceof Mesh && node.material instanceof MeshStandardMaterial && node.material.name === 'screen.001') {
+             screenMaterialRef.current = node.material;
           }
-          
-          if (node.isMesh && node.material) {
-            // Check if it's a single material or an array
-            const materials = Array.isArray(node.material) ? node.material : [node.material];
-            
-            materials.forEach((material: Material) => {
-              // Type guard to ensure it's the correct material type before accessing specific props
-              if (material instanceof MeshStandardMaterial && material.name === 'screen.001') {
-                material.map = texture;
-                material.color = new Color(lightColor);
-                material.emissiveMap = texture;
-                material.emissive = new Color(lightColor);
-                material.emissiveIntensity = 1.0;
-                material.needsUpdate = true;
-              }
-            });
-          }
-        });
+          // Potential optimization: If you know the exact name/path of the screen mesh, you could access it directly via `nodes` from useGLTF
+          // e.g., if the screen mesh is named 'ScreenMesh', you could potentially do:
+          // const screenMesh = nodes['ScreenMesh'] as Mesh;
+          // if (screenMesh && screenMesh.material instanceof MeshStandardMaterial) {
+          //     screenMaterialRef.current = screenMesh.material;
+          // }
+      });
+  }, [scene]); // Depends only on the loaded scene
+
+
+  // Use the custom hook for texture management
+  const [screenTexture, now, toggleNow] = useWatchScreenTexture({ active, showTime, fontLoaded });
+
+  // Apply the texture when it changes without triggering a re-render
+  useEffect(() => {
+    if (screenMaterialRef.current && screenTexture) {
+      const material = screenMaterialRef.current;
+      const isCanvas = (screenTexture as CanvasTexture).isCanvasTexture; // Check if it's a CanvasTexture
+
+      material.map = screenTexture;
+      material.color.set(lightColor); // Set color directly
+      // Only apply emissive properties for the dynamic time texture
+      if (isCanvas) {
+        material.emissiveMap = screenTexture;
+        material.emissive.set(lightColor); // Set emissive color
+        material.emissiveIntensity = 1.0;
+      } else {
+         // Reset emissive for static texture if needed
+         material.emissiveMap = null;
+         material.emissive.set(0x000000); // Black or original emissive color
+         material.emissiveIntensity = 0; // Or original intensity
       }
-    } catch (error) {
-      console.error("Error creating texture:", error);
+      material.needsUpdate = true;
+    } else if (screenMaterialRef.current) {
+        // Handle case where texture is null (e.g., initial load)
+        screenMaterialRef.current.map = null;
+        screenMaterialRef.current.emissiveMap = null;
+        screenMaterialRef.current.needsUpdate = true;
     }
-    
-    // Cleanup function
-    return () => {
-      if (screenTexture) {
-        screenTexture.dispose();
-      }
-    };
-  }, [active, showTime, fontLoaded, now]);
-  
+  }, [screenTexture]); // Re-run only when screenTexture changes
+
+  // useFrame is currently empty, no optimization needed here yet
   useFrame((state, delta) => {
-    // Use internalRef here as it's guaranteed to be a RefObject
-    if (internalRef.current) {
-      // Optional: Add some gentle rotation animation
-      // internalRef.current.rotation.y += delta * 0.2;
-    }
+    // Optional animation could go here if needed in the future
   });
 
-  const handleWatchyClick = (event: ThreeEvent<MouseEvent>) => {
-
-    if (event.object.name === 'Watchy_2'){
-      event.stopPropagation(); 
-      setShowTime(!showTime);
-      // update seed to current time
-      const rnd = Math.random();
-      if (rnd < 0.3) { // Use rnd instead of Math.random() for consistency
-        setNow(true);
-      } else {
-        setNow(false);
-      }
+  // Memoize click handler if necessary, though unlikely needed here unless passed to memoized child
+  const handleWatchyClick = useCallback((event: ThreeEvent<MouseEvent>) => {
+    // Check if the clicked object is part of the Watchy model specifically (e.g., the case)
+    // Using name 'Watchy_2' seems specific, ensure it's reliable.
+    if (event.object.name === 'Watchy_2'){ 
+      event.stopPropagation();
+      // Toggle showTime state
+      setShowTime(prevShowTime => !prevShowTime);
+      // Trigger the 'now' state update logic within the hook
+      toggleNow();
     }
-  };
+  }, [toggleNow]); // Include toggleNow from the hook dependency
+
+  const handlePointerMiss = useCallback((event: ThreeEvent<PointerEvent>) => {
+      event.stopPropagation(); // Prevent bubbling for misses on the model itself
+  }, []);
+
+  console.log('Watchy rendered');
 
   return (
-    // Pass the correct ref type and cast props to AnimatedGroupProps to resolve complex type conflicts
-    <animated.group 
-      ref={groupRef} 
-      // Use 'as any' to bypass complex type checking for spread props from react-spring/fiber
-      {...props as any} 
+    <animated.group
+      ref={groupRef}
+      {...props as any} // Keep 'as any' for simplicity with react-spring props
+      dispose={null} // Prevent auto-disposal of GLTF scene by drei if group unmounts
     >
-      <primitive 
-        object={scene} 
-        scale={1.0} // Internal scale, the group controls the overall scale via props
+      <primitive
+        object={scene} // Use the loaded scene directly
+        scale={1.0}
         onClick={handleWatchyClick}
-        onPointerMissed={(e: ThreeEvent<PointerEvent>) => e.stopPropagation()}
+        onPointerMissed={handlePointerMiss} // Add the pointer missed handler
       />
     </animated.group>
   );
 });
 
-Watchy.displayName = 'Watchy'; // Add display name for DevTools
+WatchyComponent.displayName = 'Watchy';
 
-// Preload the model
+// Memoize the component to prevent re-rendering when props haven't changed
+const Watchy = memo(WatchyComponent, (prevProps, nextProps) => {
+  // Only re-render if active changes or position changes
+  return prevProps.active === nextProps.active && 
+         JSON.stringify(prevProps.position) === JSON.stringify(nextProps.position);
+});
+
+// Maintain the displayName for the memoized component
+Watchy.displayName = 'Watchy';
+
+// Preload the model remains the same
 useGLTF.preload('/models/watchy.glb');
 
 export default Watchy;

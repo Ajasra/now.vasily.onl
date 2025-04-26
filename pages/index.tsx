@@ -152,8 +152,12 @@ const IndexPage: NextPage = () => {
   const handleButtonClick = useCallback(() => {
     if (!isButtonDisabled) {
       setDescriptionRequested(true);
+      // On mobile screens, show description immediately without waiting for animation
+      if (!isWideScreen) {
+        setIsDescriptionVisible(true);
+      }
     }
-  }, [isButtonDisabled]); // Dependency: isButtonDisabled
+  }, [isButtonDisabled, isWideScreen]); // Added isWideScreen dependency
 
   const handleSetDescriptionVisible = useCallback((visible: boolean) => {
     setIsDescriptionVisible(visible);

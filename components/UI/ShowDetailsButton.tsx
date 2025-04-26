@@ -14,7 +14,7 @@ const ShowDetailsButton: React.FC<ShowDetailsButtonProps> = ({ onClick, disabled
       disabled={disabled}
       style={{
         position: 'fixed',
-        bottom: '30px',
+        top: '20px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 10,
@@ -22,7 +22,7 @@ const ShowDetailsButton: React.FC<ShowDetailsButtonProps> = ({ onClick, disabled
         fontSize: '16px',
         cursor: disabled ? 'not-allowed' : 'pointer',
         backgroundColor: '#181818',
-        color: 'white',
+        color: '#FFCA88',
         border: 'none',
         borderRadius: '5px',
         opacity: disabled ? 0.6 : 1,
@@ -30,6 +30,7 @@ const ShowDetailsButton: React.FC<ShowDetailsButtonProps> = ({ onClick, disabled
         display: 'flex',
         alignItems: 'center',
         gap: '8px', // Space between icon and text
+        whiteSpace: 'nowrap',
       }}
     >
       <IconInfoCircle size={24} />
