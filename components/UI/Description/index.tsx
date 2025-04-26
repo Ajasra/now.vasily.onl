@@ -1,108 +1,88 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { ProjectDetails } from '../../../types/project';
 import { ActionIcon, Paper, Text } from '@mantine/core';
 import ReactMarkdown from 'react-markdown';
 
 import styles from './Description.module.css';
 
+// Define props including the fetched data
 interface ProjectDescriptionProps {
-  active: number;
+  // active: number; // No longer needed directly for fetching
   show: boolean;
   setShow: (show: boolean) => void;
   isWideScreen: boolean;
-  onTitleUpdate?: (title: string) => void;
+  projectDetails: ProjectDetails | null; // Receive project details
+  projectDescription: string;          // Receive description markdown
+  isLoading: boolean;                  // Receive loading state
+  error: string;                       // Receive error state
+  // onTitleUpdate?: (title: string) => void; // No longer needed
 }
 
-export default function ProjectDescription({ active, show, setShow, isWideScreen, onTitleUpdate }: ProjectDescriptionProps) {
-  const [project, setProject] = useState<ProjectDetails | null>(null);
-  const [description, setDescription] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+// Use props directly, remove internal state and fetching logic
+export default memo(function ProjectDescription({
+  show,
+  setShow,
+  isWideScreen,
+  projectDetails,
+  projectDescription,
+  isLoading, 
+  error
+}: ProjectDescriptionProps) {
+  // Remove internal state
+  // const [project, setProject] = useState<ProjectDetails | null>(null);
+  // const [description, setDescription] = useState("");
+  // const [isLoading, setIsLoading] = useState(false);
+  // const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchProject = async () => {
-      if (active === null || active === undefined) return;
-      
-      setIsLoading(true);
-      setError("");
-      
-      try {
-        const response = await fetch(`/api/project/${active+1}`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch project: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setProject(data.details);
-        setDescription(data.description);
-        
-        if (onTitleUpdate && data.details && data.details.title) {
-          onTitleUpdate(data.details.title);
-        }
-      } catch (err) {
-        console.error("Error fetching project:", err);
-        setError("Failed to load project data");
-        setShow(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  console.log('Description rerender')
 
-    if (active !== null && active !== undefined) {
-       fetchProject();
-    } else {
-       setShow(false);
-       setProject(null);
-       setDescription("");
-       if (onTitleUpdate) {
-         onTitleUpdate('');
-       }
-    }
-
-  }, [active, setShow, onTitleUpdate]);
+  // Remove fetching useEffect
+  // useEffect(() => { ... }, [active, setShow, onTitleUpdate]);
 
   if (!show) {
     return null;
   }
 
+  // Use isLoading prop for loading state
   if (isLoading) {
     return <div>Loading project information...</div>;
   }
 
+  // Use error prop for error state
   if (error) {
     return <div>Error: {error}</div>;
   }
-
-  console.log(project);
 
   function handleClose() {
     setShow(false);
   }
 
-  const paperClassName = `${styles.paper} ${isWideScreen ? styles.wide : styles.narrow}`;
+  // Calculate paperClassName directly
+  const derivedPaperClassName = `${styles.paper} ${isWideScreen ? styles.wide : styles.narrow}`;
 
   return (
     <>
-        <Paper p="xl" shadow="xs" className={paperClassName}>
-            <ActionIcon radius="xl" size="sm" color="blue" variant="subtle" className={styles.close} onClick={handleClose}>
-                X
-            </ActionIcon>
-            {project ? (
-              <>
-                <ReactMarkdown>{description}</ReactMarkdown>
-                <Text size='sm'>
-                  {project.sid} <br />{project.model}
-                </Text>
-                <Text size='sm' ta='right'>
-                  <br />
-                  <a href="#" onClick={handleClose}>Close</a>
-                </Text>
-              </>
-            ) : (
-              <Text>Project details not available.</Text>
-            )}
-        </Paper>
+      <Paper p="xl" shadow="xs" className={derivedPaperClassName}>
+        <ActionIcon radius="xl" size="sm" color="blue" variant="subtle" className={styles.close} onClick={handleClose}>
+          X
+        </ActionIcon>
+        {/* Use projectDetails and projectDescription props */} 
+        {projectDetails ? (
+          <>
+            <ReactMarkdown>{projectDescription}</ReactMarkdown>
+            <Text size='sm'>
+              {projectDetails.sid} <br />{projectDetails.model}
+            </Text>
+            <Text size='sm' ta='right'>
+              <br />
+              <a href="#" onClick={handleClose}>Close</a>
+            </Text>
+          </>
+        ) : (
+          // Display a message if details are null but no error/loading
+          <Text>Project details not available.</Text>
+        )}
+      </Paper>
     </>
   );
-}
+});

@@ -37,6 +37,8 @@ const Watchy = forwardRef<Group, WatchyProps>((props, ref) => { // Use forwardRe
   const [description, setDescription] = useState("");
 
   const { active } = props; // Props are now typed
+
+  console.log(active);
   
   // Load custom font
   useEffect(() => {
@@ -207,7 +209,7 @@ const Watchy = forwardRef<Group, WatchyProps>((props, ref) => { // Use forwardRe
         screenTexture.dispose();
       }
     };
-  }, [scene, active, showTime, fontLoaded, now, createDateTimeTexture, screenTexture]);
+  }, [active, showTime, fontLoaded, now]);
   
   useFrame((state, delta) => {
     // Use internalRef here as it's guaranteed to be a RefObject

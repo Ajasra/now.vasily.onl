@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { NextPage } from 'next';
@@ -12,6 +12,7 @@ import { IconBrandGithub, IconInfoCircle, IconFileDescription } from '@tabler/ic
 import { ActionIcon, Text, Paper } from '@mantine/core';
 import ReactMarkdown from 'react-markdown';
 import styles from '../components/UI/Description/Description.module.css';
+import { ProjectDetails } from '../types/project';
 
 // Simple hook to check media query
 const useMediaQuery = (query: string) => {
@@ -38,34 +39,100 @@ const IndexPage: NextPage = () => {
   const [projectTitle, setProjectTitle] = useState<string>('');
   const [isConceptVisible, setIsConceptVisible] = useState(false);
   const [conceptContent, setConceptContent] = useState<string>('');
+  const [descriptionRequested, setDescriptionRequested] = useState(false);
+  
+  // State for fetched project data
+  const [projectDetails, setProjectDetails] = useState<ProjectDetails | null>(null);
+  const [projectDescription, setProjectDescription] = useState<string>('');
+  const [isFetchingDescription, setIsFetchingDescription] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string>('');
+
   const isWideScreen = useMediaQuery('(min-width: 1024px)'); 
 
   const watchDefaultPosition: [number, number, number] = [1.2, -1.2, 0];
   const watchShiftedLeftPosition: [number, number, number] = [-0.5, -1.2, 0];
 
   const springProps = useSpring({
-    position: isWideScreen && isDescriptionVisible 
+    position: isWideScreen && descriptionRequested 
       ? watchShiftedLeftPosition
       : watchDefaultPosition,
     config: { duration: 1000 }, 
     onStart: () => setIsAnimating(true),
-    onRest: () => setIsAnimating(false),
+    onRest: (result) => {
+      setIsAnimating(false);
+      // Compare array elements for value equality
+      const targetReached = 
+        result.value.position[0] === watchShiftedLeftPosition[0] &&
+        result.value.position[1] === watchShiftedLeftPosition[1] &&
+        result.value.position[2] === watchShiftedLeftPosition[2];
+
+      if (descriptionRequested && targetReached) {
+        setIsDescriptionVisible(true);
+      }
+    },
   });
+
+  // Effect to fetch project data when 'active' changes
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      if (active === null || active === undefined) {
+        setProjectDetails(null);
+        setProjectDescription('');
+        setProjectTitle('');
+        setFetchError('');
+        return;
+      }
+      
+      setIsFetchingDescription(true);
+      setFetchError('');
+      
+      try {
+        // Add 1 to active index since project IDs seem 1-based in the API
+        const response = await fetch(`/api/project/${active + 1}`); 
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch project: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setProjectDetails(data.details);
+        setProjectDescription(data.description);
+        
+        // Update project title state here
+        if (data.details && data.details.title) {
+          setProjectTitle(data.details.title);
+        } else {
+          setProjectTitle(''); // Reset title if no title found
+        }
+      } catch (err: any) {
+        console.error("Error fetching project data in IndexPage:", err);
+        setFetchError(err.message || "Failed to load project data");
+        setProjectDetails(null);
+        setProjectDescription('');
+        setProjectTitle(''); // Reset title on error
+      } finally {
+        setIsFetchingDescription(false);
+      }
+    };
+
+    fetchProjectData();
+  }, [active]); // Dependency array includes only 'active'
 
   // Update button disabled logic: Only disabled while animating
   const isButtonDisabled = isAnimating;
 
   const handleButtonClick = () => {
-    // Allow setting visible if not animating (button is hidden when description is open)
     if (!isButtonDisabled) {
-      setIsDescriptionVisible(true);
+      setDescriptionRequested(true);
     }
   };
 
-  // Callback to receive project title from ProjectDescription
-  const handleProjectTitleUpdate = (title: string) => {
-    setProjectTitle(title);
-  };
+  const handleSetDescriptionVisible = useCallback((visible: boolean) => {
+    setIsDescriptionVisible(visible);
+    if (!visible) {
+      setDescriptionRequested(false);
+    }
+  }, []);
 
   // Handler for toggling concept visibility and fetching content
   const handleConceptToggle = async () => {
@@ -124,9 +191,12 @@ const IndexPage: NextPage = () => {
       <ProjectDescription 
         active={active} 
         show={isDescriptionVisible} 
-        setShow={setIsDescriptionVisible} 
+        setShow={handleSetDescriptionVisible}
         isWideScreen={isWideScreen}
-        onTitleUpdate={handleProjectTitleUpdate}
+        projectDetails={projectDetails}
+        projectDescription={projectDescription}
+        isLoading={isFetchingDescription}
+        error={fetchError}
       />
       <ModelsTimeline active={active} setActive={setActive} />
 
@@ -157,8 +227,8 @@ const IndexPage: NextPage = () => {
         {projectTitle ? projectTitle : 'Show Details'}
       </button>
 
-      {/* Concept Description Component using ProjectDescription styling */}
-      {isConceptVisible && (
+
+      {/* {isConceptVisible && (
         <Paper 
           p="xl" 
           shadow="xs" 
@@ -183,10 +253,10 @@ const IndexPage: NextPage = () => {
             </Text>
           </div>
         </Paper>
-      )}
+      )} */}
 
-      {/* GitHub Link */}
-      <ActionIcon
+
+      {/* <ActionIcon
         component="a"
         href="https://github.com/Ajasra/NOW"
         target="_blank"
@@ -209,7 +279,7 @@ const IndexPage: NextPage = () => {
         <IconBrandGithub size={32} />
       </ActionIcon>
 
-      {/* Concept Info Icon */}
+
       <ActionIcon
         onClick={handleConceptToggle}
         title="View project concept"
@@ -228,9 +298,8 @@ const IndexPage: NextPage = () => {
         onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
       >
         <IconFileDescription size={32} />
-      </ActionIcon>
+      </ActionIcon> */}
 
-      {/* Copyright */}
       <Text
         style={{
           position: 'fixed',

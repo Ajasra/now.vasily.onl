@@ -1,6 +1,4 @@
 import { Timeline } from '@mantine/core';
-import { Text } from '@mantine/core';
-import { title } from 'process';
 import React, { useState } from 'react';
 
 import styles from './Timeline.module.css';
@@ -39,12 +37,13 @@ export default function ModelsTimeline({ active, setActive }: ModelsTimelineProp
     if (id === active) return;
     if (items[id].active) setActive(id);
   }
+
+  console.log('Timeline rerender')
   
   return (
     <Timeline 
       active={active} 
       color='dark' 
-      // reverseActive 
       lineWidth={1} 
       bulletSize={12} 
       align="right"
@@ -53,7 +52,7 @@ export default function ModelsTimeline({ active, setActive }: ModelsTimelineProp
       {items.map((item, index) => (
         <Timeline.Item 
           title={item.title} 
-          key={item.title} 
+          key={"model_" + index} 
           className={`${styles.item} ${index === active ? "active" : ''}`} 
           onClick={() => handleClick(index)}
           lineVariant={item.active  ? 'solid' : 'dashed'}
